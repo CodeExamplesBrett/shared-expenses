@@ -12,7 +12,7 @@
       <q-btn
         color="primary"
         icon="receipt"
-        label="Add expense  50/50"
+        label="Add expense  50/50 ._)"
         class="full-width q-mb-md"
         @click="showDialog = true"
       />
