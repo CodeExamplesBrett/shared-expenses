@@ -4,9 +4,7 @@
       <q-card-section class="text-center q-pb-none">
         <q-icon name="receipt_long" color="primary" size="48px" />
         <div class="text-h5 q-mt-sm">Shared Expenses</div>
-        <div class="text-subtitle2 text-grey-6">
-          {{ isRegister ? 'Create an account' : 'Sign in to continue' }}
-        </div>
+        <div class="text-subtitle2 text-grey-6">Sign in to continue</div>
       </q-card-section>
 
       <q-card-section class="q-gutter-sm">
@@ -48,23 +46,14 @@
         </q-banner>
       </q-card-section>
 
-      <q-card-actions class="q-px-md q-pb-md q-gutter-sm column">
+      <q-card-actions class="q-px-md q-pb-md">
         <q-btn
-          :label="isRegister ? 'Create account' : 'Sign in'"
+          label="Sign in"
           color="primary"
           class="full-width"
           :loading="loadingEmail"
           :disable="!isValid"
           @click="handleEmail"
-        />
-
-        <q-btn
-          flat
-          dense
-          :label="isRegister ? 'Already have an account? Sign in' : 'No account? Create one'"
-          color="primary"
-          class="full-width"
-          @click="toggleMode"
         />
       </q-card-actions>
     </q-card>
@@ -82,17 +71,11 @@ const authStore = useAuthStore();
 const email = ref('');
 const password = ref('');
 const showPassword = ref(false);
-const isRegister = ref(false);
 const loadingGoogle = ref(false);
 const loadingEmail = ref(false);
 const errorMsg = ref('');
 
 const isValid = computed(() => email.value.trim() !== '' && password.value.length >= 6);
-
-function toggleMode() {
-  isRegister.value = !isRegister.value;
-  errorMsg.value = '';
-}
 
 async function handleGoogle() {
   errorMsg.value = '';
@@ -112,11 +95,7 @@ async function handleEmail() {
   errorMsg.value = '';
   loadingEmail.value = true;
   try {
-    if (isRegister.value) {
-      await authStore.registerWithEmail(email.value, password.value);
-    } else {
-      await authStore.signInWithEmail(email.value, password.value);
-    }
+    await authStore.signInWithEmail(email.value, password.value);
     await router.push('/');
   } catch (e: unknown) {
     errorMsg.value = friendlyError(e);
@@ -134,7 +113,6 @@ function friendlyError(e: unknown): string {
   ) {
     return 'Incorrect email or password.';
   }
-  if (code === 'auth/email-already-in-use') return 'That email is already registered.';
   if (code === 'auth/too-many-requests') return 'Too many attempts. Please try again later.';
   if (code === 'auth/popup-closed-by-user') return '';
   return 'Something went wrong. Please try again.';
