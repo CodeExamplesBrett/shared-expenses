@@ -9,7 +9,7 @@
         </div>
       </q-card-section>
 
-      <q-card-section class="q-gutter-md">
+      <q-card-section class="q-gutter-sm">
         <q-btn
           color="white"
           text-color="dark"
@@ -23,14 +23,7 @@
 
         <q-separator />
 
-        <q-input
-          v-model="email"
-          label="Email"
-          type="email"
-          outlined
-          dense
-          autocomplete="email"
-        />
+        <q-input v-model="email" label="Email" type="email" outlined dense autocomplete="email" />
 
         <q-input
           v-model="password"
@@ -134,7 +127,11 @@ async function handleEmail() {
 
 function friendlyError(e: unknown): string {
   const code = (e as { code?: string }).code ?? '';
-  if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+  if (
+    code === 'auth/user-not-found' ||
+    code === 'auth/wrong-password' ||
+    code === 'auth/invalid-credential'
+  ) {
     return 'Incorrect email or password.';
   }
   if (code === 'auth/email-already-in-use') return 'That email is already registered.';
