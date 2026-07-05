@@ -31,3 +31,6 @@ yarn-error.log*
 
 # local .env files
 .env.local*
+
+# Food diary Obsidian import (personal data)
+/src/assets/food-diary-seed.json

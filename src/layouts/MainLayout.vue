@@ -4,7 +4,28 @@
       <q-toolbar>
         <q-btn flat round dense icon="menu" aria-label="Menu">
           <q-menu anchor="bottom left" self="top left">
-            <q-list style="min-width: 180px">
+            <q-list style="min-width: 200px">
+              <q-item clickable v-close-popup to="/" exact>
+                <q-item-section avatar>
+                  <q-icon name="receipt_long" />
+                </q-item-section>
+                <q-item-section>Expenses</q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup to="/food-diary" exact>
+                <q-item-section avatar>
+                  <q-icon name="restaurant" />
+                </q-item-section>
+                <q-item-section>Food Diary</q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup to="/food-diary/prices" exact>
+                <q-item-section avatar>
+                  <q-icon name="sell" />
+                </q-item-section>
+                <q-item-section>Ingredient Prices</q-item-section>
+              </q-item>
+
+              <q-separator />
+
               <q-item-label header>Theme</q-item-label>
               <q-item clickable v-close-popup :active="!$q.dark.isActive" @click="setDark(false)">
                 <q-item-section avatar>

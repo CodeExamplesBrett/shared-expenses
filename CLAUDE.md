@@ -55,6 +55,16 @@ The app tracks two transaction types in Firestore:
 - **PaymentDialog.vue**: Modal for adding/editing direct payments
 - **LoginPage.vue**: Public login/register page with Google OAuth and email/password forms
 
+### Food Diary
+
+A second feature area tracking what was eaten per day (breakfast/lunch/dinner) with per-ingredient costs, migrated from an Obsidian vault (`~/Dokumente/obsidian-vault/Food Diary`).
+
+- **Firestore collections**: `foodDiary` (doc id = `YYYY-MM-DD`, holds `meals.{breakfast,lunch,dinner}` with `items[]` and `note`, plus `totalCost`) and `ingredientPrices` (central price list: `name`, `unit`, `price`, `notes`, `addedAt`)
+- **useFoodDiaryStore** (src/stores/foodDiary.ts): reference-counted Firestore listeners, `saveDay()`/`deleteDay()`, `savePrice()`/`deletePrice()`, and `importSeed()` which batch-imports `src/assets/food-diary-seed.json`
+- **Pages**: FoodDiaryPage.vue (calendar with event dots + month summary, `/food-diary`), FoodDiaryDayPage.vue (day detail with meal editing, `/food-diary/:date`), IngredientPricesPage.vue (price list CRUD, `/food-diary/prices`)
+- **FoodItemDialog.vue**: add/edit an ingredient line; picking an ingredient from the price list auto-fills unit price, and a quantity field auto-calculates cost
+- **Migration**: `node scripts/parse-food-diary.mjs` parses the Obsidian markdown (English section) into `src/assets/food-diary-seed.json`, validating all subtotals/totals against the files. The app shows an "Import" banner on the calendar page while the `foodDiary` collection is empty. Shared dishes (split bowls/trays) store each item's cost already scaled to the owner's share, flagged `shared: true`
+
 ### Firebase Integration
 
 - **Initialization**: src/boot/firebase.ts initializes Firebase app and exports `db` (Firestore) and `auth` (Firebase Auth)
