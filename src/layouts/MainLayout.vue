@@ -10,7 +10,7 @@
                 <q-item-section avatar>
                   <q-icon name="light_mode" />
                 </q-item-section>
-                <q-item-section>Light mode-1</q-item-section>
+                <q-item-section>Light mode</q-item-section>
               </q-item>
               <q-item clickable v-close-popup :active="$q.dark.isActive" @click="setDark(true)">
                 <q-item-section avatar>
