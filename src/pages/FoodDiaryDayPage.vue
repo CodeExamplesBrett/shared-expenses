@@ -98,7 +98,10 @@ const nextDate = computed(() => shiftDate(date.value, 1));
 function shiftDate(d: string, days: number) {
   const dt = new Date(d + 'T00:00:00');
   dt.setDate(dt.getDate() + days);
-  return dt.toISOString().slice(0, 10);
+  const year = dt.getFullYear();
+  const month = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 onMounted(() => {
