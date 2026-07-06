@@ -1,15 +1,8 @@
 <template>
   <q-page class="q-pa-md flex flex-center">
     <div class="app-container">
-      <q-banner
-        v-if="store.daysReady && store.days.length === 0"
-        class="bg-info text-white q-mb-md"
-        rounded
-      >
-        The food diary is empty. Import your Obsidian entries?
-        <template #action>
-          <q-btn flat label="Import" :loading="importing" @click="runImport" />
-        </template>
+      <q-banner v-if="store.error" class="bg-negative text-white q-mb-md" rounded>
+        Couldn't reach the diary server: {{ store.error }}
       </q-banner>
 
       <q-date
@@ -53,10 +46,8 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useQuasar } from 'quasar';
 import { useFoodDiaryStore } from 'stores/foodDiary';
 
-const $q = useQuasar();
 const router = useRouter();
 const store = useFoodDiaryStore();
 
@@ -64,7 +55,6 @@ const today = new Date().toISOString().slice(0, 10);
 const selectedDate = ref<string | null>(today);
 const viewYear = ref(Number(today.slice(0, 4)));
 const viewMonth = ref(Number(today.slice(5, 7)));
-const importing = ref(false);
 
 const eventDates = computed(() => store.days.map((d) => d.date.replace(/-/g, '/')));
 
@@ -98,18 +88,6 @@ function onNavigation(view: { year: number; month: number }) {
 
 async function openDay(date: string | null) {
   if (date) await router.push(`/food-diary/${date}`);
-}
-
-async function runImport() {
-  importing.value = true;
-  try {
-    const count = await store.importSeed();
-    $q.notify({ type: 'positive', message: `Imported ${count} records` });
-  } catch (err) {
-    $q.notify({ type: 'negative', message: `Import failed: ${String(err)}` });
-  } finally {
-    importing.value = false;
-  }
 }
 
 onMounted(() => {

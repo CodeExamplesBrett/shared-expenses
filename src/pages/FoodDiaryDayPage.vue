@@ -12,23 +12,16 @@
         <q-btn flat round dense icon="chevron_right" :to="`/food-diary/${nextDate}`" />
       </div>
 
+      <q-banner v-if="!dayExists" class="bg-grey-2 text-grey-8 q-mb-md" rounded>
+        No entry recorded for this day.
+      </q-banner>
+
       <q-card v-for="mealKey in MEAL_KEYS" :key="mealKey" class="q-mb-md">
         <q-card-section class="q-pb-none row items-center">
           <q-icon :name="mealIcons[mealKey]" size="20px" class="q-mr-sm" />
           <span class="text-subtitle2">{{ mealLabels[mealKey] }}</span>
           <q-space />
           <span class="text-subtitle2">€{{ mealSubtotal(day.meals[mealKey]).toFixed(2) }}</span>
-          <q-btn
-            flat
-            round
-            dense
-            size="sm"
-            icon="edit_note"
-            class="q-ml-xs"
-            @click="editNote(mealKey)"
-          >
-            <q-tooltip>Edit note</q-tooltip>
-          </q-btn>
         </q-card-section>
 
         <q-card-section
@@ -39,12 +32,7 @@
         </q-card-section>
 
         <q-list dense separator>
-          <q-item
-            v-for="(item, index) in day.meals[mealKey].items"
-            :key="index"
-            clickable
-            @click="editItem(mealKey, index)"
-          >
+          <q-item v-for="(item, index) in day.meals[mealKey].items" :key="index">
             <q-item-section>
               <q-item-label>
                 {{ item.name }}
@@ -59,44 +47,23 @@
             </q-item-section>
             <q-item-section side>€{{ item.cost.toFixed(2) }}</q-item-section>
           </q-item>
+
+          <q-item v-if="day.meals[mealKey].items.length === 0">
+            <q-item-section class="text-grey text-caption">—</q-item-section>
+          </q-item>
         </q-list>
-
-        <q-card-actions>
-          <q-btn flat dense color="primary" icon="add" label="Add item" @click="addItem(mealKey)" />
-        </q-card-actions>
       </q-card>
-
-      <q-btn
-        v-if="dayExists"
-        flat
-        color="negative"
-        icon="delete"
-        label="Delete this day"
-        class="full-width"
-        @click="removeDay"
-      />
-
-      <FoodItemDialog
-        v-model="showItemDialog"
-        :item="editingItem"
-        @save="saveItem"
-        @delete="deleteItem"
-      />
     </div>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { useQuasar } from 'quasar';
-import FoodItemDialog from 'components/FoodItemDialog.vue';
+import { computed, onMounted, onUnmounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { useFoodDiaryStore, MEAL_KEYS, emptyDay, mealSubtotal, dayTotal } from 'stores/foodDiary';
-import type { DiaryDay, FoodItem, MealKey } from 'stores/foodDiary';
+import type { DiaryDay, MealKey } from 'stores/foodDiary';
 
-const $q = useQuasar();
 const route = useRoute();
-const router = useRouter();
 const store = useFoodDiaryStore();
 
 const mealLabels: Record<MealKey, string> = {
@@ -132,69 +99,6 @@ function shiftDate(d: string, days: number) {
   const dt = new Date(d + 'T00:00:00');
   dt.setDate(dt.getDate() + days);
   return dt.toISOString().slice(0, 10);
-}
-
-const showItemDialog = ref(false);
-const editingMeal = ref<MealKey>('breakfast');
-const editingIndex = ref<number | null>(null);
-
-const editingItem = computed<FoodItem | null>(() =>
-  editingIndex.value === null
-    ? null
-    : (day.value.meals[editingMeal.value].items[editingIndex.value] ?? null),
-);
-
-function addItem(meal: MealKey) {
-  editingMeal.value = meal;
-  editingIndex.value = null;
-  showItemDialog.value = true;
-}
-
-function editItem(meal: MealKey, index: number) {
-  editingMeal.value = meal;
-  editingIndex.value = index;
-  showItemDialog.value = true;
-}
-
-async function saveItem(item: FoodItem) {
-  const updated = structuredClone(day.value);
-  const items = updated.meals[editingMeal.value].items;
-  if (editingIndex.value === null) items.push(item);
-  else items[editingIndex.value] = item;
-  await store.saveDay(updated);
-}
-
-async function deleteItem() {
-  if (editingIndex.value === null) return;
-  const updated = structuredClone(day.value);
-  updated.meals[editingMeal.value].items.splice(editingIndex.value, 1);
-  await store.saveDay(updated);
-}
-
-function editNote(meal: MealKey) {
-  $q.dialog({
-    title: `${mealLabels[meal]} note`,
-    prompt: {
-      model: day.value.meals[meal].note,
-      type: 'textarea',
-    },
-    cancel: true,
-  }).onOk((note: string) => {
-    const updated = structuredClone(day.value);
-    updated.meals[meal].note = note.trim();
-    void store.saveDay(updated);
-  });
-}
-
-function removeDay() {
-  $q.dialog({
-    title: 'Delete day',
-    message: `Delete the whole entry for ${date.value}?`,
-    cancel: true,
-    ok: { color: 'negative', label: 'Delete' },
-  }).onOk(() => {
-    void store.deleteDay(date.value).then(() => router.push('/food-diary'));
-  });
 }
 
 onMounted(() => {
