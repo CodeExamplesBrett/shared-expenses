@@ -44,10 +44,6 @@
         </q-btn>
 
         <q-toolbar-title>Shared Expenses</q-toolbar-title>
-
-        <q-btn flat round dense icon="logout" @click="handleSignOut">
-          <q-tooltip>Sign out</q-tooltip>
-        </q-btn>
       </q-toolbar>
     </q-header>
 
@@ -59,15 +55,11 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { useAuthStore } from 'stores/auth';
 
 const DARK_MODE_KEY = 'shared-expenses-dark-mode';
 
 const $q = useQuasar();
-const router = useRouter();
-const authStore = useAuthStore();
 
 onMounted(() => {
   const stored = localStorage.getItem(DARK_MODE_KEY);
@@ -77,10 +69,5 @@ onMounted(() => {
 function setDark(value: boolean) {
   $q.dark.set(value);
   localStorage.setItem(DARK_MODE_KEY, String(value));
-}
-
-async function handleSignOut() {
-  await authStore.signOut();
-  await router.push('/login');
 }
 </script>

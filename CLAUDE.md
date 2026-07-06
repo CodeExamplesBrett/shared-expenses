@@ -57,13 +57,16 @@ The app tracks two transaction types in Firestore:
 
 ### Food Diary
 
-A second feature area tracking what was eaten per day (breakfast/lunch/dinner) with per-ingredient costs, migrated from an Obsidian vault (`~/Dokumente/obsidian-vault/Food Diary`).
+A second feature area tracking what was eaten per day (breakfast/lunch/dinner) with per-ingredient costs, sourced from an Obsidian vault (`~/Dokumente/obsidian-vault/Food Diary`).
 
-- **Firestore collections**: `foodDiary` (doc id = `YYYY-MM-DD`, holds `meals.{breakfast,lunch,dinner}` with `items[]` and `note`, plus `totalCost`) and `ingredientPrices` (central price list: `name`, `unit`, `price`, `notes`, `addedAt`)
-- **useFoodDiaryStore** (src/stores/foodDiary.ts): reference-counted Firestore listeners, `saveDay()`/`deleteDay()`, `savePrice()`/`deletePrice()`, and `importSeed()` which batch-imports `src/assets/food-diary-seed.json`
-- **Pages**: FoodDiaryPage.vue (calendar with event dots + month summary, `/food-diary`), FoodDiaryDayPage.vue (day detail with meal editing, `/food-diary/:date`), IngredientPricesPage.vue (price list CRUD, `/food-diary/prices`)
-- **FoodItemDialog.vue**: add/edit an ingredient line; picking an ingredient from the price list auto-fills unit price, and a quantity field auto-calculates cost
-- **Migration**: `node scripts/parse-food-diary.mjs` parses the Obsidian markdown (English section) into `src/assets/food-diary-seed.json`, validating all subtotals/totals against the files. The app shows an "Import" banner on the calendar page while the `foodDiary` collection is empty. Shared dishes (split bowls/trays) store each item's cost already scaled to the owner's share, flagged `shared: true`
+> **Branch note:** the `nuc-hosting` branch is a self-hosted, **no-Firebase, no-login** build of the whole app — served by a zero-dependency Node server on the NUC behind `tailscale serve` (access control is the private tailnet). Expenses move from Firestore to a JSON file on the NUC (`/api/expenses` CRUD); the food diary becomes a **read-only viewer** of the Obsidian vault (`/api/food-diary`). Firebase boot files, auth store, login page, and route guards are removed. `main` keeps the original Firebase build (Firestore + Google login, food diary editable in-app). Both branches share the page shells and the parser.
+
+- **Data source (nuc-hosting)**: `GET /api/food-diary` returns `{ days, prices, warnings }` parsed live from the vault. Authoring happens in Obsidian/Claude Code (writing `YYYY-MM-DD.md` files); the app never writes.
+- **useFoodDiaryStore** (src/stores/foodDiary.ts): `load()` fetches the endpoint (`VITE_FOOD_DIARY_API`, default same-origin `/api/food-diary`); reference-counted `startListening()`/`stopListening()` poll every 60s. No write actions.
+- **Pages**: FoodDiaryPage.vue (calendar with event dots + month summary, `/food-diary`), FoodDiaryDayPage.vue (read-only day detail, `/food-diary/:date`), IngredientPricesPage.vue (read-only price list, `/food-diary/prices`)
+- **Parser**: `server/foodDiaryParser.mjs` exports `parseFoodDiary(vaultDir)` (pure, read-only), used by both the NUC server (`server/index.mjs`) and the seed CLI (`scripts/parse-food-diary.mjs`). It reads the English section, validates all subtotals/totals against the frontmatter, and scales shared-dish (split bowl/tray) item costs to the owner's share, flagged `shared: true`.
+- **NUC server**: `server/index.mjs` (zero-dependency Node) serves `/api/food-diary` (read-only), `/api/expenses` (CRUD → `EXPENSES_FILE` JSON, atomic writes, serialized), and the built SPA; front it with `tailscale serve` for private HTTPS. Setup: `server/README.md`.
+- **Expenses (nuc-hosting)**: `useExpensesStore` (src/stores/expenses.ts) polls `/api/expenses` (`VITE_EXPENSES_API`, default same-origin) every 15s and POST/PUT/DELETEs there instead of Firestore; same `Expense` shape and `balance` getter, so the expenses UI is unchanged.
 
 ### Firebase Integration
 

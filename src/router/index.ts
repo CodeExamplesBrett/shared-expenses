@@ -5,19 +5,9 @@ import {
   createWebHashHistory,
   createWebHistory,
 } from 'vue-router';
-import { onAuthStateChanged, type User } from 'firebase/auth';
-import { auth } from 'boot/firebase';
 import routes from './routes';
 
-function getCurrentUser() {
-  return new Promise<User | null>((resolve) => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      unsub();
-      resolve(user);
-    });
-  });
-}
-
+// No auth on this branch — access control is the private tailnet (see server/).
 export default defineRouter(function (/* { store, ssrContext } */) {
   const createHistory = process.env.SERVER
     ? createMemoryHistory
@@ -33,15 +23,6 @@ export default defineRouter(function (/* { store, ssrContext } */) {
     // quasar.conf.js -> build -> vueRouterMode
     // quasar.conf.js -> build -> publicPath
     history: createHistory(process.env.VUE_ROUTER_BASE),
-  });
-
-  Router.beforeEach(async (to) => {
-    const requiresAuth = to.matched.some((r) => r.meta.requiresAuth);
-    if (!requiresAuth) return true;
-
-    const user = await getCurrentUser();
-    if (!user) return '/login';
-    return true;
   });
 
   return Router;

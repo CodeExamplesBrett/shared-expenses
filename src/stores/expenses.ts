@@ -1,16 +1,4 @@
 import { defineStore } from 'pinia';
-import {
-  collection,
-  addDoc,
-  doc,
-  updateDoc,
-  deleteDoc,
-  onSnapshot,
-  orderBy,
-  query,
-  Timestamp,
-} from 'firebase/firestore';
-import { db } from 'boot/firebase';
 
 export type Expense = {
   id: string;
@@ -21,10 +9,17 @@ export type Expense = {
   date: string;
 };
 
+// Same-origin by default (app + API served from the NUC). Override for dev.
+const API_URL = import.meta.env.VITE_EXPENSES_API ?? '/api/expenses';
+const POLL_MS = 15_000;
+
 export const useExpensesStore = defineStore('expenses', {
   state: () => ({
     expenses: [] as Expense[],
-    unsubscribe: null as null | (() => void),
+    ready: false,
+    error: null as string | null,
+    listenerCount: 0,
+    pollTimer: null as null | ReturnType<typeof setInterval>,
   }),
 
   getters: {
@@ -34,44 +29,63 @@ export const useExpensesStore = defineStore('expenses', {
   },
 
   actions: {
+    async load() {
+      try {
+        const res = await fetch(API_URL, { headers: { accept: 'application/json' } });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        this.expenses = (await res.json()) as Expense[];
+        this.error = null;
+      } catch (err) {
+        this.error = String(err instanceof Error ? err.message : err);
+      } finally {
+        this.ready = true;
+      }
+    },
+
+    // Reference-counted poll loop (no real-time push without Firestore).
     startListening() {
-      if (this.unsubscribe) return;
-
-      const q = query(collection(db, 'expenses'), orderBy('createdAt', 'desc'));
-
-      this.unsubscribe = onSnapshot(q, (snapshot) => {
-        this.expenses = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...(doc.data() as Omit<Expense, 'id'>),
-        }));
-      });
+      this.listenerCount++;
+      if (this.pollTimer) return;
+      void this.load();
+      this.pollTimer = setInterval(() => void this.load(), POLL_MS);
     },
 
     stopListening() {
-      if (this.unsubscribe) {
-        this.unsubscribe();
-        this.unsubscribe = null;
+      this.listenerCount = Math.max(0, this.listenerCount - 1);
+      if (this.listenerCount > 0) return;
+      if (this.pollTimer) {
+        clearInterval(this.pollTimer);
+        this.pollTimer = null;
       }
     },
 
     async addExpense(expense: Expense) {
-      await addDoc(collection(db, 'expenses'), {
-        type: expense.type,
-        description: expense.description,
-        amount: expense.amount,
-        paidBy: expense.paidBy,
-        date: expense.date,
-        createdAt: Timestamp.now(),
+      await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          type: expense.type,
+          description: expense.description,
+          amount: expense.amount,
+          paidBy: expense.paidBy,
+          date: expense.date,
+        }),
       });
+      await this.load();
     },
+
     async updateExpense(id: string, updates: Omit<Expense, 'id'>) {
-      await updateDoc(doc(db, 'expenses', id), {
-        ...updates,
+      await fetch(`${API_URL}/${id}`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(updates),
       });
+      await this.load();
     },
 
     async deleteExpense(id: string) {
-      await deleteDoc(doc(db, 'expenses', id));
+      await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      await this.load();
     },
   },
 });
